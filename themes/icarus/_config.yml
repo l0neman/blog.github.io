@@ -3,11 +3,11 @@ version: 3.0.0
 # Icarus theme variant, can be "default" or "cyberpunk"
 variant: default
 # Path or URL to the website's logo
-logo: /img/logo.svg
+logo: /img/logo.png
 # Page metadata configurations
 head:
     # URL or path to the website's icon
-    favicon: /img/favicon.svg
+    favicon: /img/avatar.png
     # Open Graph metadata
     # https://hexo.io/docs/helpers.html#open-graph
     open_graph:
@@ -82,7 +82,7 @@ navbar:
     links:
         Download on GitHub:
             icon: fab fa-github
-            url: 'https://github.com/ppoffice/hexo-theme-icarus'
+            url: 'https://github.com/l0neman'
 # Page footer configurations
 footer:
     # Links to be shown on the right of the footer section
@@ -167,7 +167,7 @@ sidebar:
     # Right sidebar configurations
     right:
         # Whether the sidebar sticks to the top when page scrolls
-        sticky: false
+        sticky: true
 # Sidebar widget configurations
 # http://ppoffice.github.io/hexo-theme-icarus/categories/Widgets/
 widgets:
@@ -181,13 +181,13 @@ widgets:
         # Author title
         author_title: A lonely man who can't stop.
         # Author's current location
-        location: Beijing
+        location: 来自地球
         # URL or path to the avatar image
         avatar: /img/avatar.png
         # Whether show the rounded avatar image
         avatar_rounded: true
         # Email address for the Gravatar
-        gravatar: l0neman@foxmail.com
+        # gravatar: l0neman@foxmail.com
         # URL or path for the follow button
         follow_link: 'https://github.com/l0neman'
         # Links to be shown on the bottom of the profile widget
@@ -201,7 +201,7 @@ widgets:
     # Table of contents widget configurations
     -
         # Where should the widget be placed, left sidebar or right sidebar
-        position: left
+        position: right
         type: toc
     # Recommendation links widget configurations
     -
@@ -232,23 +232,23 @@ widgets:
         position: right
         type: tags
     # Google FeedBurner email subscription widget configurations
-    -
+    # -
         # Where should the widget be placed, left sidebar or right sidebar
-        position: left
-        type: subscribe_email
-        # Hint text under the email input
-        description: 
-        # Feedburner ID
-        feedburner_id: ''
+        # position: left
+        # type: subscribe_email
+        # # Hint text under the email input
+        # description: 
+        # # Feedburner ID
+        # feedburner_id: ''
     # Google AdSense unit configurations
-    -
+    # -
         # Where should the widget be placed, left sidebar or right sidebar
-        position: left
-        type: adsense
-        # AdSense client ID
-        client_id: ''
-        # AdSense AD unit ID
-        slot_id: ''
+        # position: left
+        # type: adsense
+        # # AdSense client ID
+        # client_id: ''
+        # # AdSense AD unit ID
+        # slot_id: ''
 # Plugin configurations
 # https://ppoffice.github.io/hexo-theme-icarus/categories/Plugins/
 plugins:
@@ -300,6 +300,8 @@ providers:
     # Name or URL template of the JavaScript and/or stylesheet CDN provider
     cdn: jsdelivr
     # Name or URL template of the webfont CDN provider
-    fontcdn: https://fonts.font.im//css2?family=Ubuntu:wght@400;600&family=Source+Code+Pro
+    # fontcdn: https://fonts.font.im//css2?family=Ubuntu:wght@400;600&family=Source+Code+Pro
+    fontcdn: loli
     # Name or URL of the fontawesome icon font CDN provider
-    iconcdn: https://cdn.bootcss.com/font-awesome/5.13.0/css/all.css
+    # iconcdn: https://cdn.bootcss.com/font-awesome/5.13.0/css/all.css
+    iconcdn: loli

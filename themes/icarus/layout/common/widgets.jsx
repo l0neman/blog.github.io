@@ -33,9 +33,11 @@ function getColumnCount(widgets) {
 function getColumnSizeClass(columnCount) {
     switch (columnCount) {
         case 2:
-            return 'is-4-tablet is-4-desktop is-4-widescreen';
+            // return 'is-4-tablet is-4-desktop is-4-widescreen';
+            return ''
         case 3:
-            return 'is-4-tablet is-4-desktop is-3-widescreen';
+            return ''
+            // return 'is-4-tablet is-4-desktop is-3-widescreen';
     }
     return '';
 }
