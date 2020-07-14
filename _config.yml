@@ -15,7 +15,7 @@ timezone: 'Asia/Shanghai'
 # 如果你的网站存放在子目录中, 设置地址为 'http://yoursite.com/child' 且 root 设为 '/child/'
 url: https://l0neman.github.io/
 root: /
-permalink: :year/:month/:day/:title/
+permalink: /:year/:month/:day/:title/
 permalink_defaults:
 pretty_urls:
   trailing_index: true # 是否在永久链接中保留尾部的 index.html，设置为 false 时去除
@@ -32,7 +32,7 @@ i18n_dir: :lang
 skip_render:
 
 # 写作
-new_post_name: ::year-:month-:day-:title.md # 新发布文件名格式
+new_post_name: :year-:month-:day-:title.md # 新发布文件名格式
 default_layout: post
 auto_spacing: true
 titlecase: false # Transform title into titlecase

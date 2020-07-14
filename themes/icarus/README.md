@@ -38,6 +38,8 @@ themes/icarus/layout/common/widgets.jsx
 
 尺寸更改参考：https://bulma.io/documentation/columns/sizes/
 
+
+
 ## 添加文章目录
 
 在文章头部添加 `toc: true`。
@@ -48,3 +50,9 @@ toc: true
 ---
 文章内容...
 ```
+
+
+
+## 添加 read more 按钮
+
+在文章合适位置插入 `<!-- more -->`
