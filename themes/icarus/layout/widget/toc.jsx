@@ -117,7 +117,7 @@ class Toc extends Component {
 
         return <div class="card widget" id="toc">
             <div class="card-content">
-                <div class="menu" style="max-height: 400px; overflow: auto;">
+                <div class="menu" style="max-height: 480px; overflow: auto;">
                     <h3 class="menu-label">{this.props.title}</h3>
                     {this.renderToc(toc)}
                 </div>
