@@ -118,14 +118,11 @@ search:
 # Comment plugin configurations
 # https://ppoffice.github.io/hexo-theme-icarus/categories/Plugins/Comment/
 comment:
-    type: gitalk
-    # Disqus shortname
-    client_id: 4bc301df09ad18aae7f9
-    client_secret: 3cf0e67c9fd2546d21ad44b61b3b00eda4fa715a
-    repo: git@github.com:l0neman/blog.comment.git
-    owner: l0neman
-    admin:
-        - l0neman
+    type: utterances
+    repo: l0neman/l0neman.github.io
+    issue_term: pathname
+    label: comment
+    theme: github-light
 # Donate plugin configurations
 # https://ppoffice.github.io/hexo-theme-icarus/categories/Plugins/Donation/
 donates:
