@@ -93,7 +93,7 @@ export BOOTCLASSPATH /system/framework/org.dirtyunicorns.utils.jar
                      :/system/framework/org.apache.http.legacy.boot.jar
 ```
 
-可以看到，它加载的类型都是 java 和 android 提供的基础类库中的类型。
+可以看到，它加载的类型都是 Java 和 Android 提供的基础类库中的类型。
 
 通过一些基础类型的 `class` 成员调用 `getClassLoader()` 方法可以获取到它，例如：
 
