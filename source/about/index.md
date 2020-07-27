@@ -6,7 +6,7 @@ donates:
 share:
 comment:
 ---
-## Android 程序员，Like a robot
+## Android 程序员
 
 
 
