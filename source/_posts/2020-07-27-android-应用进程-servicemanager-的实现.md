@@ -79,25 +79,37 @@ private void startOtherServices() {
 
 如果现在要实现自己的 Binder 服务，并且服务存在于独立的进程中，且客户端可以获取服务端的 Binder 引用，自由地向服务端发出任务请求，要怎么办呢。
 
+还要考虑动态注册 Binder 服务的需求，现实情况下，一个 Binder 服务可能无法满足业务需求，所以可以考虑以字符串标识对 Binder 服务端进行注册，那么客户端可以利用字符串标识查询对应的 Binder 服务端（类似于 Android 系统的 ServiceManager）。
+
+
+
+那么需要分两部分考虑：
+
+1. 实现的 Binder 服务需要在一个进程中运行，在 Android 中四大组件均可在独立进程中运行，首先 Activity 不能在后台运行，所以 Binder 服务不能在 Activity 中运行，BroadcastReceiver 只能执行短时间的任务，所以也不能放置 Binder 服务，那么放在 Service 和 ContentProvider 是可行的。
+
+2. 如果传递 Binder 服务的引用给客户端，客户端持有 Binder 引用后即可向 Binder 服务端发起请求，那么有如下分析：
+
 首先我们的应用处于 Android 普通应用进程中，并没有系统权限，所以不可能通过 Android 系统的 ServiceManager 注册自己的 Binder 服务，那么直接注册成为实名 Binder 服务的方法就不能采用了。
 
 那么现在只能考虑从匿名 Binder 来实现，先找到一个已建立的实名 Binder 连接，使用这个连接来传递自己的 Binder 服务端的引用给客户端使用即可。
 
 Android 系统服务都是实名 Binder 连接，但它们的功能都是固定的，没有提供一个提供创建匿名 Binder 的方法，所以考虑使用 Android SDK 提供的与匿名 Binder 相关的 API。同时为了实现 Binder 服务端，所以还要考虑后台运行的支持。
 
-那么看起来有两个组件较为合适。
+系统中的 Bundle 可以携带 Binder（使用 `putBinder` 方法），即 Intent 也能携带 Binder（Intent 可携带 Bundle）；还有 Service 组件的 `onBind` 方法，在客户端绑定时可以返回 Binder 引用。
 
-Android SDK 提供的 Service 和 ContextProvider 组件具有传送匿名 Binder 的功能，如下：
+
+
+那么基于这个条件就可以让的 Service 和 ContentProvider 组件具有了传送匿名 Binder 的功能，如下：
 
 1. 对于 Service 组件，开发者可实现一个远程进程中的 Service，然后实现它的 `onBind` 方法，返回一个 Binder 对象，这个 Binder 对象的引用将会传递给客户端，客户端（例如 Activity）使用 `bindService` 方法，通过 `ServiceConnection` 中的 `onServiceConnected` 回调获取这个 Binder 引用后，即可向 Service 中的 Binder 对象发送处理相关任务的请求，即通过 `bindService` 可以获得一个匿名 Binder；同时也可以在启动 Service 时，通过 `Intent` 携带一个 `Bundle` 对象，`Bundle` 对象中携带一个 Binder 对象进行传递，即在启动服务时可通过 `Intent` 传递 Binder 对象。
 
 2. 对于 ContentProvider 组件，开发者在实现了 `ContentProvider` 之后，可以使用 `context.getContentResolver()` 获取一个 `ContentResolver` 对象，利用这个 `ContentResolver` 对象向 `ContentProvider` 发出增删查改请求（`query`、`delete`、`insert`、`update`），还可以通过 `call` 方法发出自定义命令，其中 `call` 方法最后一个参数可以携带一个 `Bundle` 对象，这个 `Bundle` 允许携带 `Binder` 对象，即通过 `call` 方法可传递 Binder；同时 `call` 方法返回一个 `Bundle` 对象，即 ContentProvider 端也可直接返回 Binder 对象。
 
+即 Service 和 ContentProvider 可以实现独立的 Binder 服务，或者有能力对 Binder 服务进行统一的管理。
 
 
-`Bundle` 可以携带 Binder 对象（通过 `putBinder` 方法），`Intent` 可以携带 `Bundle`，那么意味着可以通过 `Intent` 传递 Binder 对象，`Intent` 可以将数据传递至四大组件，但是由于 Activity 组件和 BroadcastReceiver 组件都不能后台运行，而且它们都只能停留很短的时间，所以不适合用来实现 Binder 服务。
 
-分析了需求和实现方案，下面开始确定具体的实现方案。
+分析了需求和实现方法，下面确定一下具体实施方案。
 
 
 
@@ -105,9 +117,11 @@ Android SDK 提供的 Service 和 ContextProvider 组件具有传送匿名 Binde
 
 目前要实现 Binder 服务，那么首先需要实现一个 Binder 服务端对象，将其放置在远程进程中，再通过匿名 Binder 通道，将 Binder 服务端引用传递给客户端，此时客户端使用 Binder 服务端引用即可向服务端发起请求，这时就完成了一个 Binder 服务的建立；
 
-同时还要考虑动态注册 Binder 服务的需求，现实情况下，一个 Binder 服务可能无法满足业务需求，所以可以考虑以字符串标识对 Binder 服务端进行注册，那么客户端可以利用字符串标识查询对应的 Binder 服务端（类似于 Android 系统的 ServiceManager）。
+如果要实现 Binder 服务的动态注册，Binder 服务可能分布在各个进程中，如果需要统一管理，需要首先建立一个类似于系统 ServiceManager 的角色，ServiceManager 运行在一个独立的进程，Binder 服务可通过进程间通信的方法将自己的 Binder 引用注册到 ServiceManager 中，客户端可以通过 ServiceManager 自由获取 Binder 服务端的引用。
 
-现在有两种办法可以实现匿名 Binder，需要采用哪一种方案呢实现 Binder 服务。
+
+
+现在有两种办法可以实现匿名 Binder，需要采用哪一种方案实现 Binder 服务呢。
 
 
 
@@ -275,22 +289,44 @@ protected void onCreate(Bundle savedInstanceState) {
 
 
 
-提示：这里有一个细节是，ServiceProvider 与应用主进程相同，那么此时通过 Bundle 返回的 Binder 并不是什么 Binder 引用，而是直接返回 ServiceProvider 的 `mFooService` 对象，如果 ServiceProvider 在另一个进程，那么通过 Bundle 返回的将是 Binder 引用。
+提示：这里有一个细节是，ServiceProvider 与应用主进程相同，此时里面的 `IFoo` Binder 服务端也和它处于同一进程，那么此时通过 Bundle 返回的 ref 并不是 Binder 引用，而是直接返回 ServiceProvider 的 `mFooService` 对象（Binder 类表示），如果 ServiceProvider 在另一个进程，那么通过 Bundle 返回的将是 Binder 引用（BinderProxy 类表示）。
 
 ```java
 // IFoo - IFoo$Stub
 
 public static io.l0neman.example.IFoo asInterface(android.os.IBinder obj) {
   if (obj == null) { return null;  }
+  // 查询 Binder 是否在本地
   android.os.IInterface iin = obj.queryLocalInterface(DESCRIPTOR);
-  // 如果 Binder 对象属于本进程，那么 iin 将为 Binder 自身
+  // 如果 obj 对象是 Binder 服务端对象，iin 将为 obj 自己，如果 obj 是 Binder 引用，则为 null
   if (iin != null && iin instanceof io.l0neman.example.IFoo) {
     // 本进程直接返回 Binder 对象
     return (io.l0neman.example.IFoo) iin;
   }
   
-  // 否则返回 Binder 的引用，通过 Proxy 提供的方法，向 Binder 服务端发送请求
+  // 否则返回 Binder 的引用，通过 Proxy 提供的方法，可向 Binder 服务端发送请求
   return new io.l0neman.example.IFoo.Stub.Proxy(obj);
+}
+```
+
+```java
+// Binder.java
+
+...
+public IInterface queryLocalInterface(String descriptor) {
+  if (mDescriptor.equals(descriptor)) {
+    return mOwner;
+  }
+  return null;
+}
+```
+
+```java
+// Binder.java - class BinderProxy
+
+...
+public IInterface queryLocalInterface(String descriptor) {
+  return null;
 }
 ```
 
@@ -298,13 +334,13 @@ public static io.l0neman.example.IFoo asInterface(android.os.IBinder obj) {
 
 ## 动态注册 Binder 服务
 
-动态注册服务，就是可以自由的向 ContentProvider 进程中注册 Binder 服务，注册后，客户端可以依据标识获取对应功能的服务端 Binder 的引用，然后向对应 Binder 服务发起任务请求。
+动态注册服务，就是可以自由的注册 Binder 服务，注册后，客户端可以依据标识获取对应功能的服务端 Binder 的引用，然后向对应 Binder 服务发起任务请求。
 
-按照前面的想法，先在 ContentProvider 中创建一个 `Map<String, IBinder>`，当 Binder 服务注册时，使用 `call` 方法将 Binder 服务端对象传递过来，此时 ContentProvider 接收到 Binder 服务端对象，使用 `Map` 缓存起来，下一次，客户端再使用 `call` 方法传入字符串标识，ContentProvider 接收到字符串标识从 `Map` 中取出 Binder 端服务对象，返回给客户端。
+按照前面的想法，先在 ContentProvider 中创建一个 `Map<String, IBinder>`，当 Binder 服务注册时，使用 `call` 方法将 Binder 服务端对象传递过来，此时 ContentProvider 接收到 Binder 服务端对象的引用，使用 `Map` 缓存起来，下一次，客户端再使用 `call` 方法传入字符串标识，ContentProvider 接收到字符串标识从 `Map` 中取出 Binder 端服务对象的引用，返回给客户端。
 
-那么这样就需要在 ContentProvider 的 `call` 方法实现中，实现多个 `method` 参数的处理，例如使用 `switch`。以后我们还可能实现取消注册 Binder 服务等方法，那么每次都需要在 `switch` 中添加分支处理，这样的话看起来太麻烦了，而且可读性极差，其实可以直接采用面向对象的方式来完成。
+一般方法是在 ContentProvider 的 `call` 方法中，实现多个 `method` 参数的处理，例如使用 `switch`。考虑到以后还可能实现取消注册 Binder 服务等方法，那么每次都需要在 `switch` 中添加分支处理，这样的话看起来太麻烦了，而且可读性极差，其实可以直接采用面向对象的方式来完成。
 
-首先，实现一个叫做 `ServiceManager` 的 Binder 服务，这个 Binder 服务将直接内置在 ContentProvider 中，负责管理其他 Binder 服务的注册、获取、和取消注册等一系列事务。
+首先，先实现一个叫做 `ServiceManager` 的 Binder 服务，这个 Binder 服务将直接内置在 ContentProvider 中，负责管理其他 Binder 服务的注册、获取、和取消注册等一系列事务。
 
 类似于 Android 系统的 ServiceManager，系统的 ServiceManager 是直接在 Android 系统启动时使用 0 号引用注册到驱动中的，那么我们的应用进程中的 ServiceManager 就直接内置在一个 ContentProvider 中，当 ContentProvider 启动，ServiceManager 也就可以使用了。
 
@@ -343,7 +379,7 @@ public class ServiceManagerImpl extends IServiceManager.Stub {
     if (mAliveServices.containsKey(name)) {
       // 不允许重复注册
       ServiceEntry item = mAliveServices.get(name);
-      throw new RuntimeException(String.format("Service %s has registed by pid:%s, uid:%s", name,
+      throw new RuntimeException(String.format("Service %s has registed by pid: %s, uid: %s", name,
           item.callingPid, item.callingUid));
     }
 
@@ -434,7 +470,7 @@ private static final class ServiceEntry {
 public class ServiceManagerProvider extends ContentProvider {
   private static final String TAG = ServiceManagerProvider.class.getSimpleName();
 
-  public static final String URI = "content://io.hexman.ipc.provider";
+  public static final String URI = "content://io.l0neman.app.provider";
   public static final String KEY_SM = "binder";
   public static final String METHOD_SM = "$";
 
@@ -475,7 +511,7 @@ public class ServiceManagerProvider extends ContentProvider {
 ```xml
 <provider
   android:name="io.l0neman.app.ServiceManagerProvider"
-  android:authorities="io.hexman.ipc.provider"
+  android:authorities="io.l0neman.app.provider"
   android:exported="false"
   android:process=":sm"
   android:grantUriPermissions="true" />
@@ -608,7 +644,17 @@ public class MainActivity extends AppCompatActivity {
 
 最终结果为 `add: 3` 和 `sub: 2`。
 
-提示：这次实现的 `ServiceManagerProvider` 是在另一个进程中，那么 `ServiceManagerImpl` 的 Binder 对象通过 Bundle 携带返回给 `MainActivity` 时将变成一个 Binder 引用，对于多进程环境下的 ContentProvider，对于 `call` 方法的调用，将穿过 `ActivityManagerProxy` 与 `ActivityManagerService` 建立的匿名 Binder 通道传递数据，此时在 Bundle 中携带的 Binder 对象将被指定转换为 Binder 引用，至于转化过程的细节，在此不再赘述，后续再分析。
+提示：
+
+`ServiceManagerProvider` 运行在一个独立进程中，和 `MainActivity` 处于不同的进程中，那么 `MainActivity` 中的两个 Binder 服务端对象通过 Bundle 传递给 `ServiceManagerProvider` 时将变成一个 Binder 引用，此时 `ServiceManagerImpl` 可对这些 Binder 引用进行统一管理。对于另一个进程中的 ContentProvider，主进程对于 `call` 方法的调用，将穿过 `ActivityManagerProxy` 与 `ActivityManagerService` 建立的匿名 Binder 通道传递 Bundle 数据，此时在 Bundle 中携带的 Binder 对象将被自动转换为 Binder 引用，至于转化过程的细节，在此不再赘述，后面再分析。
+
+下面 `test` 方法中的获取的 Binder 对象直接就是 `MainActivity` 中的两个 Binder 服务端对象并非引用，因为 Binder 服务端和 `test` 方法在同一个进程中，所以 `ServiceManager.getService` 返回的对象是 Binder 服务端对象（Binder 类表示），那么 `asInterface` 中的 `queryLocalInterface` 将返回 Binder 服务端对象自身。
+
+当客户端在其他进程调用 `ServiceManager.getService` 获取 Binder 服务端引用，与 Binder 服务端进程不在同一个进程中时，那么客户端获取的就是服务端的 Binder 引用（BinderProxy 类表示）。
+
+
+
+这样就实现了一个普通应用进程中的 ServiceManager，通过统一管理匿名 Binder 的方式，实现了一种伪实名 Binder。
 
 
 
