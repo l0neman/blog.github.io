@@ -14,11 +14,9 @@ tags:
 
 
 
+Binder 相关基础可参考：[android-binder-设计分析](https://l0neman.github.io/2019/04/08/android-binder-设计分析/)
+
 # 实名 Binder 与匿名 Binder
-
-Binder 相关基础可参考：[Android Binder 设计分析](/2019/04/08/android-binder-设计分析/)
-
-
 
 ## 实名 Binder
 
@@ -65,9 +63,9 @@ private void startOtherServices() {
 
 ## 匿名 Binder
 
-还存在一种匿名 Binder，匿名 Binder 的创建依赖于一条已经建立的 Binder 连接，通过已建立的 Binder 连接，将 Binder 服务端的引用从服务端传递至另一端，此时另一端持有 Binder 引用就可以通过 Binder 驱动与服务端进行沟通了。
+还存在一种匿名 Binder，匿名 Binder 的创建依赖于一条已经建立的 Binder 连接，通过已建立的 Binder 连接，将 Binder 服务端的引用从服务端进程传递至另一端，此时另一端持有 Binder 引用就可以通过 Binder 驱动与服务端进行沟通了。
 
-匿名 Binder 并非通过明确的字符串标识进行注册，而是通过私有 Binder 连接传递 Binder 引用，匿名 Binder 无法通过枚举或者猜测得到。
+匿名 Binder 不通过明确的字符串标识进行注册，而是通过私有 Binder 连接通道传递 Binder 引用，所以匿名 Binder 无法通过枚举或者猜测得到。
 
 除了 ServiceManager 自身通过 0 号引用注册的 Binder 连接（仅服务于实名 Binder 的注册），其他的就只有系统服务注册的实名 Binder 连接了。
 
@@ -77,7 +75,7 @@ private void startOtherServices() {
 
 # 需求分析
 
-如果现在要实现自己的 Binder 服务，并且服务存在于独立的进程中，且客户端可以获取服务端的 Binder 引用，自由地向服务端发出任务请求，要怎么办呢。
+如果现在要实现自己的 Binder 服务，服务存在于独立的进程中，且客户端可以获取服务端的 Binder 引用，自由地向服务端发出任务请求，要怎么办呢。
 
 还要考虑动态注册 Binder 服务的需求，现实情况下，一个 Binder 服务可能无法满足业务需求，所以可以考虑以字符串标识对 Binder 服务端进行注册，那么客户端可以利用字符串标识查询对应的 Binder 服务端（类似于 Android 系统的 ServiceManager）。
 
@@ -91,9 +89,9 @@ private void startOtherServices() {
 
 首先我们的应用处于 Android 普通应用进程中，并没有系统权限，所以不可能通过 Android 系统的 ServiceManager 注册自己的 Binder 服务，那么直接注册成为实名 Binder 服务的方法就不能采用了。
 
-那么现在只能考虑从匿名 Binder 来实现，先找到一个已建立的实名 Binder 连接，使用这个连接来传递自己的 Binder 服务端的引用给客户端使用即可。
+那么现在只能考虑通过匿名 Binder 来实现，先找到一个已建立的实名 Binder 连接，使用这个连接来传递自己的 Binder 服务端的引用给客户端使用即可。
 
-Android 系统服务都是实名 Binder 连接，但它们的功能都是固定的，没有提供一个提供创建匿名 Binder 的方法，所以考虑使用 Android SDK 提供的与匿名 Binder 相关的 API。同时为了实现 Binder 服务端，所以还要考虑后台运行的支持。
+Android 系统服务都是实名 Binder 连接，但是它们提供的接口功能都是固定的，肯定不能自由的被利用，所以只能先找到一个与匿名 Binder 相关的 API。同时为了实现 Binder 服务端，所以还要考虑后台运行的支持。
 
 系统中的 Bundle 可以携带 Binder（使用 `putBinder` 方法），即 Intent 也能携带 Binder（Intent 可携带 Bundle）；还有 Service 组件的 `onBind` 方法，在客户端绑定时可以返回 Binder 引用。
 
@@ -103,7 +101,7 @@ Android 系统服务都是实名 Binder 连接，但它们的功能都是固定�
 
 1. 对于 Service 组件，开发者可实现一个远程进程中的 Service，然后实现它的 `onBind` 方法，返回一个 Binder 对象，这个 Binder 对象的引用将会传递给客户端，客户端（例如 Activity）使用 `bindService` 方法，通过 `ServiceConnection` 中的 `onServiceConnected` 回调获取这个 Binder 引用后，即可向 Service 中的 Binder 对象发送处理相关任务的请求，即通过 `bindService` 可以获得一个匿名 Binder；同时也可以在启动 Service 时，通过 `Intent` 携带一个 `Bundle` 对象，`Bundle` 对象中携带一个 Binder 对象进行传递，即在启动服务时可通过 `Intent` 传递 Binder 对象。
 
-2. 对于 ContentProvider 组件，开发者在实现了 `ContentProvider` 之后，可以使用 `context.getContentResolver()` 获取一个 `ContentResolver` 对象，利用这个 `ContentResolver` 对象向 `ContentProvider` 发出增删查改请求（`query`、`delete`、`insert`、`update`），还可以通过 `call` 方法发出自定义命令，其中 `call` 方法最后一个参数可以携带一个 `Bundle` 对象，这个 `Bundle` 允许携带 `Binder` 对象，即通过 `call` 方法可传递 Binder；同时 `call` 方法返回一个 `Bundle` 对象，即 ContentProvider 端也可直接返回 Binder 对象。
+2. 对于 ContentProvider 组件，开发者在实现了 `ContentProvider` 之后，可以在客户端使用 `context.getContentResolver()` 获取一个 `ContentResolver` 对象，利用这个 `ContentResolver` 对象向 `ContentProvider` 发出增删查改请求（`query`、`delete`、`insert`、`update`），还可以通过 `call` 方法发出自定义命令，其中 `call` 方法最后一个参数可以携带一个 `Bundle` 对象，这个 `Bundle` 允许携带 `Binder` 对象，即通过 `call` 方法可传递 Binder；同时 `call` 方法返回一个 `Bundle` 对象，即 ContentProvider 端也可直接返回 Binder 对象。
 
 即 Service 和 ContentProvider 可以实现独立的 Binder 服务，或者有能力对 Binder 服务进行统一的管理。
 
@@ -115,7 +113,7 @@ Android 系统服务都是实名 Binder 连接，但它们的功能都是固定�
 
 # 实现方案
 
-目前要实现 Binder 服务，那么首先需要实现一个 Binder 服务端对象，将其放置在远程进程中，再通过匿名 Binder 通道，将 Binder 服务端引用传递给客户端，此时客户端使用 Binder 服务端引用即可向服务端发起请求，这时就完成了一个 Binder 服务的建立；
+要通过匿名 Binder 实现一个 Binder 服务，那么首先需要实现一个 Binder 服务端对象，将其放置在远程进程中，再通过匿名 Binder 通道，将 Binder 服务端引用传递给客户端，此时客户端使用 Binder 服务端的引用即可向服务端发起请求，这时就完成了一个 Binder 服务的建立；
 
 如果要实现 Binder 服务的动态注册，Binder 服务可能分布在各个进程中，如果需要统一管理，需要首先建立一个类似于系统 ServiceManager 的角色，ServiceManager 运行在一个独立的进程，Binder 服务可通过进程间通信的方法将自己的 Binder 引用注册到 ServiceManager 中，客户端可以通过 ServiceManager 自由获取 Binder 服务端的引用。
 
@@ -127,9 +125,9 @@ Android 系统服务都是实名 Binder 连接，但它们的功能都是固定�
 
 ## Service 方案
 
-如果采用 Service 的方案实现一个 Binder 服务，那么首先需要实现一个 Service，然后在清单文件中配置，假如要实现一个自己的 Binder 服务端，放在这个远程 Service 中，客户端使用 `bindService` 获取 Binder 服务端的 Binder 引用即可，不过这样的话看起来和直接使用 Service 组件没有任何区别，属于脱裤子放屁；
+如果采用 Service 的方案实现一个 Binder 服务，首先需要实现一个 Service，然后在清单文件中配置它，然后实现一个自己的 Binder 服务端，放在这个远程 Service 中，客户端使用 `bindService` 获取 Binder 服务端的 Binder 引用即可，不过这样的话看起来和直接使用 Service 组件没有任何区别，属于脱裤子放屁；
 
-如果实现 Binder 服务端的动态注册，将需要使用到的 Binder 服务端对象动态传递至 Service 中，然后客户端再想办法查询 Binder 服务端的引用。那么考虑借助 Intent 对象，利用 `Context` 的 `startService` 或 `bindService` 方法动态传递 Binder 对象至 Service 中，在 Intent 中携带字符串标识，然后在 Service 中建立一个用字符串作为标识的 `Map<String, IBinder>` 缓存这些 Binder 服务端，当客户端获取时，首先需要使用 `bindService` 方法，绑定 Service，然后 Service 返回一个 Binder 引用，这个 Binder 引用并不能是客户端想要获取的 Binder 服务端引用，因为每次绑定 Service，它都始终返回同一个 Binder，就是 Service 的 `onBinder` 方法第一次返回的那个 Binder，所以这个 Binder 需要作为一个中转的 Binder 服务端，需要先使用 `AIDL` 定义一个服务获取客户端想要的 Binder 服务端的方法，例如：
+如果实现 Binder 服务端的动态注册，将需要使用到的 Binder 服务端对象动态传递至 Service 中，然后客户端再想办法查询 Binder 服务端的引用。那么考虑借助 Intent 对象，利用 `Context` 的 `startService` 或 `bindService` 方法动态传递 Binder 对象至 Service 中，在 Intent 中携带字符串标识，然后在 Service 中建立一个用字符串作为标识的 `Map<String, IBinder>` 结构缓存这些 Binder 服务端，当客户端获取时，首先需要使用 `bindService` 方法，绑定 Service，然后 Service 返回一个 Binder 引用，不过这个 Binder 引用并不能是客户端想要获取的 Binder 服务端引用，因为每次绑定 Service，它都始终返回同一个 Binder，就是 Service 的 `onBinder` 方法第一次返回的那个 Binder，所以这个 Binder 需要作为一个中转的 Binder 服务端，需要先使用 `AIDL` 定义一个服务获取客户端想要的 Binder 服务端的方法，例如：
 
 ```java
 // IBridge.aidl
@@ -147,9 +145,9 @@ interface IBridge {
 
 ## ContentProvider 方案
 
-如果采用 Service 的方案实现一个 Binder 服务，那么首先需要实现一个 ContentProvider，然后也需要清单文件中配置，假如要实现一个自己的 Binder 服务端，放在这个远程进程的 ContentProvider 中，客户端使用 `call` 获取返回的 Bundle 数据包，然后读取出其中携带的 Binder 服务端的 Binder 引用即可，ContentProvider 的本意是为了共享数据，但这样就被赋予了新的功能，用来做 Binder 服务端的支持，相对于 Service 实现一个 Binder 服务来说，没有体现出太多优势；
+如果采用 ContentProvider 的方案实现一个 Binder 服务，那么首先需要实现一个 ContentProvider，然后也需要清单文件中配置它，然后实现一个自己的 Binder 服务端，放在这个远程进程的 ContentProvider 中，客户端使用 `call` 获取返回的 Bundle 数据包，然后读取出其中携带的 Binder 服务端的 Binder 引用即可，ContentProvider 的本意是为了共享数据，但这样一来就被赋予了新的功能，用来做 Binder 服务端的支持。不过相对于使用 Service 实现一个 Binder 服务来说，也没有体现出太多优势；
 
-如果实现 Binder 服务端的动态注册，将需要使用到的 Binder 服务端对象动态传递至 Service 中，然后客户端再想办法查询 Binder 服务端的引用。那么可以直接使用 `call` 方法将字符串标识和通过 Bundle 数据包将服务端 Binder 发送给 ContentProvider 中，ContentProvider 使用一个 `Map<String, IBinder>` 缓存即可，下次客户端可以直接使用字符串标识通过 `call` 方法请求获取对应的 Binder 服务端，那么 ContentProvider 直接返回携带对应 Binder 服务端的引用即可。
+如果实现 Binder 服务端的动态注册，将需要使用到的 Binder 服务端对象动态传递至 ContentProvider 中，然后客户端再想办法查询 Binder 服务端的引用。那么可以直接使用 `call` 方法将字符串标识和通过 Bundle 数据包将服务端 Binder 发送至 ContentProvider 中，ContentProvider 使用一个 `Map<String, IBinder>` 缓存即可，下次客户端可以直接使用字符串标识通过 `call` 方法请求获取对应的 Binder 服务端，那么 ContentProvider 直接返回携带对应 Binder 服务端的引用即可，这样来看就比 Service 实现动态注册 Binder 服务有优势的多。
 
 
 
@@ -157,7 +155,7 @@ interface IBridge {
 
 通过对两种方案的描述，谁更有优势显而易见。
 
-对于 Service 来说，它存在诸多限制，例如 `bindService` 绑定存在限制，BroadcastReceiver 组件无法绑定，绑定后必须取消绑定；或者服务不允许在后台运行，除非加上前台通知才允许后台运行，即使抛开这些限制，使用它实现 Binder 服务也是很麻烦的。
+对于 Service 来说，它还存在诸多限制，例如 `bindService` 绑定存在限制，BroadcastReceiver 组件无法绑定、绑定后必须取消绑定、或者服务不允许在后台运行，除非加上前台通知才允许后台运行，即使抛开这些限制，使用它实现 Binder 服务也是很麻烦的（需要借助 `ServiceConnectation`）。
 
 反观 ContentProvider 均不存在上述限制，无需绑定，直接使用 `call` 请求即可，API 足够简洁，看起来可以完美的实现 Binder 服务。
 
@@ -252,13 +250,14 @@ public class ServiceProvider extends ContentProvider {
 ```xml
 <provider
   android:name="io.l0neman.example.ServiceProvider"
+  android:exported="false"
   android:authorities="io.l0neman.example.binder"
   android:enabled="true" />
 ```
 
 很简单的代码，当任何客户端对 `ServiceProvider` 发出 `call` 请求，且 `method` 参数为 `ACTION_GET_SERVICE` 时，就返回一个携带 IFoo 服务的 Binder 对象。
 
-那么客户端即可使用 `call` 获取服务端的 Binder 向服务端请求了。
+此时客户端即可使用 `call` 获取服务端的 Binder 向服务端请求了。
 
 ```java
 // MainActivity.java
@@ -294,13 +293,14 @@ protected void onCreate(Bundle savedInstanceState) {
 ```java
 // IFoo - IFoo$Stub
 
+...
 public static io.l0neman.example.IFoo asInterface(android.os.IBinder obj) {
   if (obj == null) { return null;  }
   // 查询 Binder 是否在本地
   android.os.IInterface iin = obj.queryLocalInterface(DESCRIPTOR);
   // 如果 obj 对象是 Binder 服务端对象，iin 将为 obj 自己，如果 obj 是 Binder 引用，则为 null
   if (iin != null && iin instanceof io.l0neman.example.IFoo) {
-    // 本进程直接返回 Binder 对象
+    // 本进程直接则直接返回 Binder 对象
     return (io.l0neman.example.IFoo) iin;
   }
   
@@ -385,10 +385,10 @@ public class ServiceManagerImpl extends IServiceManager.Stub {
 
     IBinder.DeathRecipient recipient = new IBinder.DeathRecipient() {
       @Override public void binderDied() {
-        ServiceEntry item = mAliveServices.remove(name);
-        if (item != null) {
+        ServiceEntry entry = mAliveServices.remove(name);
+        if (entry != null) {
           // 保存死亡的 Binder 对象
-          mDiedServices.put(name, item);
+          mDiedServices.put(name, entry);
         }
       }
     };
@@ -404,14 +404,14 @@ public class ServiceManagerImpl extends IServiceManager.Stub {
   }
 
   @Override public IBinder getService(String name) {
-    ServiceEntry item = mAliveServices.get(name);
-    if (item == null) {
+    ServiceEntry entry = mAliveServices.get(name);
+    if (entry == null) {
       Log.d(TAG, "#getService form died: " + name);
-      item = mDiedServices.get(name);
+      entry = mDiedServices.get(name);
     }
 
-    if (item != null) {
-      return item.binder;
+    if (entry != null) {
+      return entry.binder;
     }
 
     Log.e(TAG, "#getService: " + name);
@@ -419,10 +419,10 @@ public class ServiceManagerImpl extends IServiceManager.Stub {
   }
 
   @Override public void removeService(String name) throws RemoteException {
-    ServiceEntry item = mAliveServices.get(name);
-    if (item != null) {
+    ServiceEntry entry = mAliveServices.get(name);
+    if (entry != null) {
       // 取消注册 Binder 死亡通知
-      item.unlinkToDeath();
+      entry.unlinkToDeath();
     }
 
     mDiedServices.remove(name);
@@ -430,7 +430,7 @@ public class ServiceManagerImpl extends IServiceManager.Stub {
 }
 ```
 
-逻辑并不难理解，其中 ServiceEntry 为了方便保存 Binder 服务端的相关信息：
+逻辑并不难理解，其中 ServiceEntry 是为了保存 Binder 服务端的相关信息的类型，可以利用这些信息做权限控制，例如限制指定的客户端进程 ID 和客户端 uid 才能>使用，代码如下：
 
 ```java
 private static final class ServiceEntry {
@@ -528,7 +528,7 @@ public class ServiceManager {
 
   private static IServiceManager sIServiceManager;
 
-  // 获取 ServiceManager 的 Binder 引用
+  // 获取 ServiceManager 的 Binder 引用（实则为 Binder 引用的封装，Proxy 对象）
   private static void ensureIServiceManager(final Context context) {
     Bundle bundle = context.getContentResolver().call(
         Uri.parse(ServiceManagerProvider.URI),
@@ -547,7 +547,7 @@ public class ServiceManager {
     try {
       serviceManager.linkToDeath(new IBinder.DeathRecipient() {
         @Override public void binderDied() {
-          // Binder 死亡则重新获取
+          // Binder 死亡则尝试重新获取
           ensureIServiceManager(context);
         }
       }, 0);
@@ -590,14 +590,37 @@ public class ServiceManager {
 }
 ```
 
-很简单的封装，下面直接测试。
+很简单的封装，下面直接测试就好了。
+
 
 
 # 测试
 
-在 MainActivity 的 `onCreate` 方法中直接注册两个 Binder 服务，`foo` 和 `bar`，分别负责相加运算和相减运算。
+首先定义两个服务 `foo` 和 `bar` 的 AIDL 接口，它们分别负责相加运算和相减运算。
 
-然后在点击 `test` 按钮时分别获取两个服务的 Binder 引用，请求服务执行，获取结果。
+```java
+// IFoo.aidl
+
+package io.l0neman.example;
+
+interface IFoo {
+    int add(int x, int y);
+}
+```
+
+```java
+// IBar.aidl
+
+package io.l0neman.example;
+
+interface IBar {
+    int sub(int x, int y);
+}
+```
+
+然后在 `MainActivity` 的 `onCreate` 方法中直接注册两个 Binder 服务。
+
+在点击 `test` 按钮时分别获取两个服务的 Binder 引用，请求服务执行，获取结果。
 
 ```java
 public class MainActivity extends AppCompatActivity {
@@ -622,6 +645,7 @@ public class MainActivity extends AppCompatActivity {
     });
   }
 
+  // 点击测试按钮
   public void test(View view) {
     IFoo iFoo = IFoo.Stub.asInterface(ServiceManager.getService(this, "foo"));
     if (iFoo != null) {
@@ -642,7 +666,7 @@ public class MainActivity extends AppCompatActivity {
 }
 ```
 
-最终结果为 `add: 3` 和 `sub: 2`。
+代码也很简单，最终输出结果为 `add: 3` 和 `sub: 2`。
 
 提示：
 
@@ -661,6 +685,10 @@ public class MainActivity extends AppCompatActivity {
 # 开源仓库
 
 [https://github.com/l0neman/AppServiceManager](https://github.com/l0neman/AppServiceManager)
+
+应用场景：只要是涉及两个进程间的通信，都可以用到，例如插件端和宿主端的通信、或实现一个主控制端服务，根据请求执行不同的任务。
+
+
 
 # 参考
 
