@@ -163,7 +163,7 @@ interface IBridge {
 
 # 实现
 
-根据上面的方实现案分析（最终确定了使用 ContentProvider 组件实现），下面来真正实现 Android 应用进程中的 Binder 服务。
+根据上面的实现方案分析（最终确定了使用 ContentProvider 组件实现），下面来真正实现 Android 应用进程中的 Binder 服务。
 
 
 
