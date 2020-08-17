@@ -804,7 +804,7 @@ service 语句块下面可以赋予多种选项（option），用来指示服务
 | chown user group file       | 等价于 `chown user:group file` 命令                      |
 | croot directory             | 等价于 Linux 的 chroot 命令（调用 chroot(2)）           |
 | class_reset service_class   | 停止与 `service_class` 相关的所有服务                    |
-| class_[start|stop] class    | 启动或者停止 `class` 参数指定的 `service_class` 的所有服务|
+| class_[start\|stop] class   | 启动或者停止 `class` 参数指定的 `service_class` 的所有服务|
 | copy src_file dst_file      | 类似 `cp(1)` 命令                                        |
 | exec command                | 执行命令                                                |
 | enable service              | 启动一个已被 disable 的服务                             |
@@ -818,7 +818,7 @@ service 语句块下面可以赋予多种选项（option），用来指示服务
 | rm[dir] filename            | 删除一个文件或一个目录（调用 `unlink(2)/dmdir(2)`）      |
 | restorecon[_recursive] path | 用 `path` 参数指定文件重新加载 SELinux 上下文            |
 | setcon SEcontext            | 设置 SELinux 的上下文，init 上下文为 `u:r:init:s0`       |
-| setenforce[0|1]             | 强制启用或关闭 SELinux                                  |
+| setenforce[0\|1]            | 强制启用或关闭 SELinux                                  |
 | setprop key value           | 设置指定的系统属性                                      |
 | stop service_name           | 停止服务名与参数 service_name 一致的语句块中的服务      |
 | symlink target src          | 创建一个符号连接 ln-s，即调用 `symlink(2)`               |
