@@ -635,7 +635,7 @@ private static void registerZygoteSocket(String socketName) {
 }
 ```
 
-主是要创建了本地服务端 socket 对象，命名为 `ANDROID_SOCKET_zygote`。
+主要是要创建了本地服务端 socket 对象，命名为 `ANDROID_SOCKET_zygote`。
 
 
 
