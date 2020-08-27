@@ -77,7 +77,7 @@ include $(CLEAR_VARS)
 # 指定共享库名字，产出物为 libfoo.so
 LOCAL_MODULE := foo
 # 指定源代码文件，多个源代码文件使用空格分隔，换行在行尾使用 \
-LOCAL_SRC_FILES := main.cpp
+LOCAL_SRC_FILES := libfoo.cpp
 
 include $(BUILD_SHARED_LIBRARY)
 ```
