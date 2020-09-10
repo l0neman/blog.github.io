@@ -184,7 +184,7 @@ struct hedaer_item {
     文件剩余内容（除 magic 和此字段之外的所有内容)的 adler32 校验和；
     用于检测文件损坏情况。
    */
-  u1 checksum;
+  u4 checksum;
   /*
     文件剩余内容（除 magic、checksum 和此字段之外的所有内容)的 SHA-1 签名（哈希)；
     用于对文件进行唯一标识。
@@ -1004,7 +1004,7 @@ void DexParser::parse_header_item()
 inline void print_dex_header(header_item* dex_header) {
   printf("magic: ");
   Printer::print_hex_array(dex_header->magic, 8);
-  printf("checksum: %d\n", dex_header->checksum);
+  printf("checksum: %6x\n", dex_header->checksum);
 
   printf("signature: ");
   Printer::print_hex_array(dex_header->signature, 20);
@@ -1051,9 +1051,11 @@ void Printer::print_hex_array(uint8_t const* array, const unsigned int size)
 对于 Hello.dex 的 `header_item` 解析结果如下：
 
 ```
+>>>>>>>>>>>> parse header_item <<<<<<<<<<<<
+
 magic: 64 65 78 0a 30 33 35 00
-checksum: 104
-signature: 7d 13 99 68 bf 36 a6 0d f7 51 a8 7e 79 c8 09 2f 15 ac fa 7b
+checksum: 99137d68
+signature: 68 bf 36 a6 0d f7 51 a8 7e 79 c8 09 2f 15 ac fa 7b da 6a 42
 file_size: 944
 header_size: 112
 endian_tag: 305419896
