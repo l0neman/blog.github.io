@@ -111,19 +111,18 @@ public class NativeHandler {
 
 ```cpp
 // libfoo.h
-
-extern "C" {
-
 #ifndef NDKTPROJECT_LIBFOO_H
 #define NDKTPROJECT_LIBFOO_H
 
 #include <jni.h>
 
+extern "C" {
+
 // 注册指定 Java 层的 JNI 方法
 JNIEXPORT jstring JNICALL
 Java_io_l0neman_mkexample_NativeHandler_getHello(JNIEnv *env, jclass clazz);
 
-};
+}
 
 #endif //NDKTPROJECT_LIBFOO_H
 ```
