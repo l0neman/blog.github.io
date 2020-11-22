@@ -1430,7 +1430,7 @@ static void print_program_header(T* header, const uint8_t bit)
 
 ## 解析段
 
-遍历段描述表的过程中可以获取段名、段偏移和段大小信息从而析 ELF 符号表和 ELF 重定位表。
+遍历段描述表的过程中可以获取段名、段偏移和段大小信息从而解析 ELF 符号表和 ELF 重定位表。
 
 ```cpp
 void ElfParser::parse_section_list()
