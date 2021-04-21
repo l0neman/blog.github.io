@@ -3,7 +3,7 @@ title: Android 模拟器 Root 和 SuperSU 安装
 toc: true
 date: 2020-09-19 22:35:00
 categories:
-- 实用工具
+- Android 实用工具
 tags:
 - Android
 - Emulator
