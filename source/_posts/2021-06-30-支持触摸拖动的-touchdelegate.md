@@ -12,21 +12,20 @@ tags:
 
 最近有一个小需求，就是在界面上有一个预览图片的区域，这个区域用户可以双击缩放图片、双指自由缩放图片、触摸图片进行移动，对图片的局部区域进行查看，像这样：
 
-![](./0.gif)
+![](1.gif)
 
 这个功能可以使用 github 中的开源库 PhotoView 实现，地址：[https://github.com/Baseflow/PhotoView](https://github.com/Baseflow/PhotoView)
 
 同时另一个条件是当前这个图像预览区域较小，不像上图这样预览区域比较大，大概是 4 分之 1 左右，如果直接使用 PhotoView 设置图片，那么用户体验可能较差，因为图像展示区域较小，难以进行自由的图像移动预览操作，所以这个需求就是：扩大触摸区域，让用户在图像显示区域的外侧也可以自由的对图像进行移动预览操作。如下，白色区域是 PhotoView 的父控件的区域，用户触摸和双击这里时，可对图像进行预览操作：
 <!-- more -->
+![](0.gif)
 
-![](./1.gif)
+先把 PhotoView 放置在布局中，然后设置一张图片，PhotoView 本身会支持图片的双击和双指缩放与移动预览，如果要实现上述的需求，当时想到了两种解决方案：
 
-先把 PhotoView 放置在布局中，然会设置一张图片，PhotoView 本身会支持图片的双击和双指缩放与移动预览，如果要实现上述的需求，当时想到了两种解决方案：
-
-1. 将 PhotoView（图像预览控件）的所在 ViewGroup 的触摸事件传递给 PhotoView，那么用户触摸在父控件上时，PhotoView 将会接收到触摸事件，从而控制内部图像的缩放和移动；
+1. 将 PhotoView（图像预览控件）的父控件的触摸事件传递给 PhotoView，那么用户触摸在父控件上时，PhotoView 将会接收到触摸事件，从而控制内部图像的缩放和移动；
 2. 先将 PhotoView 本身尺寸变大，填满白色区域，再想办法将图片显示区域限制到需要的大小，需要手动使用代码调整图片显示到限制区域
 
-那么第二种方法应该需要对 PhotoView 控件进行额外处理和调整，第一种方法只需要将触摸事件传递给 PhotoView 即可，看起来第一种方法更简洁一些，所以当时选择了第一种方案进行处理
+显然第二种方法是需要对 PhotoView 控件进行额外处理和调整，与 PhotoView 紧密相连，第一种方法只需要将触摸事件传递给 PhotoView 即可，那么第一种方法更灵活和通用，所以优先选择第一种方案进行处理
 
 采取第一种方案，通常可以自定义一个 ViewGroup，将它作为 PhotoView 的父控件，并重写它的 `dispatchTouchEvent` 方法，将事件全部传递给 PhotoView 处理。但这种方法不够灵活，因为需要创建一个特定的 ViewGroup 类型。那么还有没有其他的方法？发现 Android 提供了一个 `TouchDelegate` 的类，使用它可以扩大一个 View 的触摸区域，听起来挺符合当前需求的场景，那么计划使用 TouchDelegate 来实现这个需求。
 
@@ -187,7 +186,7 @@ public boolean onTouchEvent(@NonNull MotionEvent event) {
 
 如下图，在第二个手指不放开的情况下，第一个手指抬起、放下、抬起、放下会触发图像的跳跃：
 
-![](./2.gif)
+![](2.gif)
 
 通过现象进行猜测，显然是两次触摸坐标之间的差值过大，导致 PhotoView 认为用户瞬间拖动了很长一段距离，图像跟着瞬间移动，就会出现跳跃现象
 
@@ -502,5 +501,3 @@ public static void expandViewTouchDelegate(final View view, final View parent) {
 # 参考
 
 - [https://developer.android.google.cn/training/gestures/scale?hl=zh-cn](https://developer.android.google.cn/training/gestures/scale?hl=zh-cn)
-
-
